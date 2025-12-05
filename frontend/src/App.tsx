@@ -14,7 +14,7 @@ const App: React.FC = () => {
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/fix" element={<FixPreview />} />
-          <Route path="/callback" element={<Callback />} />
+          <Route path="auth/callback" element={<Callback />} />
         </Routes>
       </Layout>
     </Router>
