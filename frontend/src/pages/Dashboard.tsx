@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Statistic, List, Tag, Button, Typography, Progress, Alert, Space, Tooltip } from 'antd';
+// 1. 添加 message 到引用列表
+import { Card, Row, Col, Statistic, List, Tag, Button, Typography, Progress, Alert, Space, Tooltip, message } from 'antd';
 import { CheckCircleOutlined, WarningOutlined, BugOutlined, ToolOutlined, ArrowLeftOutlined, FileTextOutlined, GithubOutlined } from '@ant-design/icons';
 import { AnalyzeResponse, Issue } from '../types';
 
@@ -9,6 +10,7 @@ const { Title, Text } = Typography;
 const Dashboard: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  // 获取 /analyze 接口返回的完整数据
   const data = location.state?.data as AnalyzeResponse;
 
   if (!data) {
@@ -30,6 +32,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // 解构出 files (这里面包含了 README.md 等文件的原始内容字符串)
   const { report, repo_info, files } = data;
 
   const getSeverityColor = (severity: string) => {
@@ -42,7 +45,37 @@ const Dashboard: React.FC = () => {
   };
 
   const handleFix = (issue: Issue) => {
-    navigate('/fix', { state: { issue, fileContent: files[issue.file], repoInfo: repo_info } });
+    // 1. 获取所有文件条目
+    // 这里的类型断言 'any' 是为了临时解决类型不匹配的问题
+    // 因为实际数据结构是 { path: string, content: string }，而前端可能定义成了 string
+    const fileEntries = Object.values(files) as any[];
+
+    // 2. 在文件列表中查找匹配 path 的项
+    // 我们寻找哪个文件的 .path 属性等于 issue.file (例如 "README.md")
+    const targetFile = fileEntries.find(f => f && f.path === issue.file);
+
+    // 3. 提取内容
+    const content = targetFile ? targetFile.content : null;
+
+    if (!content) {
+        console.error('无法找到文件内容。');
+        console.log('正在寻找:', issue.file);
+        console.log('可用文件路径:', fileEntries.map(f => f.path));
+        
+        message.error(`未找到文件 ${issue.file} 的原始内容，请检查后端返回数据`);
+        return;
+    }
+
+    // 4. 跳转
+    // 注意：这里我们把 dashboardData 传过去，用于返回时恢复状态
+    navigate('/fix', { 
+      state: { 
+        issue, 
+        fileContent: content, 
+        repoInfo: repo_info,
+        dashboardData: data 
+      } 
+    });
   };
 
   const scoreColor = report.overall_score >= 80 ? '#52c41a' : report.overall_score >= 60 ? '#faad14' : '#ff4d4f';
